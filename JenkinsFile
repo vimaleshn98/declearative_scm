@@ -1,0 +1,81 @@
+pipeline {
+    agent {
+        label 'agent1'
+    }
+    options {
+        skipStagesAfterUnstable()
+    }
+    stages {
+         stage('Prepare Environment') {
+            steps {
+                script {
+                    // Install 'make' on the agent
+                    sh '''
+                    if ! [ -x "$(command -v make)" ]; then
+                        echo "Installing make..."
+                        sudo apt-get update
+                        sudo apt-get install -y make
+                    else
+                        echo "make is already installed."
+                    fi
+                    '''
+                }
+            }
+        }
+        stage('Create Shell Script') {
+            steps {
+                script {
+                    // Define the shell script content
+                    def scriptContent = '''
+                    #!/bin/bash
+                    echo "This is a dynamically generated script."
+                    echo "Current date and time: $(date)"
+                    '''
+                    
+                    def makeFileContent = '''
+                    include script.sh
+                    build:
+                        @echo "Building..."
+                        @$(call my_function)
+                    .PHONY: build
+                    '''
+                    // Write the script to a file
+                    writeFile file: 'Makefile', text: makeFileContent
+                    // writeFile encoding: 'Base64', file: 'Makefile', text: '''include script.sh
+                    // build:
+                    //     @echo "Building..."
+                    //     @$(call my_function)
+                    // .PHONY: build'''
+                    
+                    // Write the script to a file
+                    writeFile file: 'generated_script.sh', text: scriptContent
+
+                    // Set executable permissions and run the script
+                    sh '''
+                    chmod +x generated_script.sh Makefile
+                    ./generated_script.sh
+                    pwd
+                    '''
+                    
+                }
+            }
+        }
+        stage('Build') {
+            steps {
+                sh '''
+                echo "building!!!!!!!"
+                '''
+            }
+        }
+        stage('Test'){
+            steps {
+                sh 'echo "Testing!!!!!!!"'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                sh 'echo "publish" ' //
+            }
+        }
+    }
+}
